@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>प्रतापपुर ग्राम</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        .header {
+            background-color: #4CAF50;
+            color: white;
+            text-align: center;
+            padding: 1rem;
+        }
+        .download-button {
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            display: inline-block;
+            margin: 1rem;
+            font-size: 1.2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .download-button:hover {
+            background-color: #45a049;
+        }
+        .download-section {
+            text-align: center;
+            background: white;
+            padding: 2rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            margin: 1rem 0;
+            overflow: hidden;
+            display: none;
+        }
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: #4CAF50;
+            transition: width 0.3s ease;
+        }
+        .file-info {
+            color: #666;
+            margin: 0.5rem 0;
+            font-size: 0.9rem;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .feedback-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        input, textarea {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .install-prompt {
+            display: none;
+            background-color: #4CAF50;
+            color: white;
+            text-align: center;
+            padding: 1rem;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>प्रतापपुर ग्राम</h1>
+    </div>
+
+    <div class="container">
+        <div class="download-section">
+            <h2>मोबाइल ऐप डाउनलोड करें</h2>
+            <p>बेहतर अनुभव के लिए हमारी मोबाइल ऐप डाउनलोड करें</p>
+            <p class="file-info">फ़ाइल का साइज़: <span id="apkSize">12.5 MB</span></p>
+            <div class="progress-bar" id="progressBar">
+                <div class="progress" id="progress"></div>
+            </div>
+            <a href="https://drive.google.com/uc?export=download&id=YOUR_FILE_ID" class="download-button" id="downloadButton">
+                ऐप डाउनलोड करें (APK)
+            </a>
+            <p style="font-size: 0.8rem; color: #666; margin-top: 0.5rem;">
+                * Google Drive से डाउनलोड किया जाएगा
+            </p>
+        </div>
+
+        <div class="card">
+            <h2>सूचना बोर्ड</h2>
+            <p>गांव की नवीनतम जानकारी यहाँ देखें</p>
+        </div>
+
+        <div class="card">
+            <h2>फीडबैक दें</h2>
+            <form class="feedback-form" id="feedbackForm">
+                <input type="text" id="name" placeholder="आपका नाम" required>
+                <textarea id="message" placeholder="अपना सुझाव यहाँ लिखें" required></textarea>
+                <button type="submit">भेजें</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>पिछले सुझाव</h2>
+            <div id="feedbackList"></div>
+        </div>
+    </div>
+
+    <div id="installPrompt" class="install-prompt">
+        <p>ऐप इंस्टॉल करें</p>
+        <button id="installButton">इंस्टॉल करें</button>
+    </div>
+
+    <script>
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/sw.js')
+                .then(registration => console.log('ServiceWorker registered'))
+                .catch(err => console.log('ServiceWorker registration failed:', err));
+        }
+
+        // PWA Install Prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installPrompt').style.display = 'block';
+        });
+
+        document.getElementById('installButton').addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                document.getElementById('installPrompt').style.display = 'none';
+            }
+        });
+
+        // Get APK file size
+        document.getElementById('apkSize').textContent = '12.5 MB';
+
+        // Download progress
+        document.getElementById('downloadButton').addEventListener('click', function(e) {
+            e.preventDefault();
+            const progressBar = document.getElementById('progressBar');
+            const progress = document.getElementById('progress');
+            const downloadButton = this;
+            
+            progressBar.style.display = 'block';
+            downloadButton.style.pointerEvents = 'none';
+            downloadButton.textContent = 'डाउनलोड हो रहा है...';
+
+            // For Google Drive downloads, we'll use a simpler approach
+            // as we can't track progress directly
+            window.location.href = this.href;
+            
+            // Show progress bar animation
+            let width = 0;
+            const interval = setInterval(() => {
+                if (width >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        progressBar.style.display = 'none';
+                        progress.style.width = '0%';
+                        downloadButton.style.pointerEvents = 'auto';
+                        downloadButton.textContent = 'ऐप डाउनलोड करें (APK)';
+                    }, 1000);
+                } else {
+                    width += 2;
+                    progress.style.width = width + '%';
+                }
+            }, 100);
+        });
+
+        // Feedback Form
+        document.getElementById('feedbackForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const message = document.getElementById('message').value;
+
+            try {
+                const response = await fetch('/submit-feedback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, message })
+                });
+                const data = await response.json();
+                alert(data.message);
+                loadFeedback();
+                e.target.reset();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('कुछ गलत हो गया। कृपया पुनः प्रयास करें।');
+            }
+        });
+
+        // Load Feedback
+        async function loadFeedback() {
+            try {
+                const response = await fetch('/get-feedback');
+                const feedbacks = await response.json();
+                const feedbackList = document.getElementById('feedbackList');
+                feedbackList.innerHTML = feedbacks.map(feedback => `
+                    <div class="card">
+                        <strong>${feedback.name}</strong>
+                        <p>${feedback.message}</p>
+                        <small>${feedback.date}</small>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        loadFeedback();
+    </script>
+</body>
+</html>
